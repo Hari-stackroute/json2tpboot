@@ -13,7 +13,16 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.janusgraph.core.JanusGraph;
+import org.janusgraph.core.JanusGraphFactory;
+import org.janusgraph.core.schema.JanusGraphManagement;
+import org.janusgraph.core.schema.VertexLabelMaker;
 import org.neo4j.driver.v1.*;
+import org.sunbird.cassandra.CassandraOperation;
+import org.sunbird.common.Response;
+import org.sunbird.helper.CassandraConnectionManager;
+import org.sunbird.helper.CassandraConnectionMngrFactory;
+import org.sunbird.helper.ServiceFactory;
 import org.umlg.sqlg.structure.SqlgGraph;
 
 import java.io.IOException;
@@ -21,7 +30,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class TPUtils {
-    public static enum DBTYPE {NEO4J, POSTGRES};
+    public static enum DBTYPE {NEO4J, POSTGRES, CASSANDRA};
 
     private static Driver driver;
     private DBTYPE target;
@@ -69,12 +78,32 @@ public class TPUtils {
         return graph;
     }
 
+    public static Graph createJanusCassandraGraph() {
+        Configuration config = new BaseConfiguration();
+		/*config.setProperty("jdbc.url", connectionInfo.getUri());
+		config.setProperty("jdbc.username", connectionInfo.getUsername());
+		config.setProperty("jdbc.password", connectionInfo.getPassword());*/
+        config.setProperty("storage.backend", "cql");
+        //config.setProperty("query.batch", true);
+
+        //String host = environment.getProperty("cassandra.hostname");
+        config.setProperty("storage.hostname", "127.0.0.1");
+        config.setProperty("storage.cql.keyspace", "tp_janus1");
+        config.setProperty("storage.cql.compact-storage",false);
+        config.setProperty("storage.cql.compression",false);
+
+        JanusGraph graph = JanusGraphFactory.open(config);
+        return graph;
+    }
+
     public static Graph getGraph(DBTYPE target) {
         switch (target) {
             case NEO4J:
                 return createNeo4jGraph();
             case POSTGRES:
                 return createPostgresGraph();
+            case CASSANDRA:
+                return createJanusCassandraGraph();
             default:
                 return null;
         }
@@ -172,6 +201,42 @@ public class TPUtils {
 //        }
         tx.commit();
         return objectNode;
+    }
+
+    public static void main(String args[]) throws Exception {
+        /*JanusGraph g = (JanusGraph) createJanusCassandraGraph();
+        Transaction tx = g.tx();
+        Vertex teacherV = g.addVertex("Teacher");
+        teacherV.property("serialNum", 7);
+        Vertex teacherRoleV = g.addVertex("TeacherRole");
+        teacherRoleV.property("roleId",2);
+        teacherV.addEdge("role",teacherRoleV);
+        tx.commit();
+        g.close();*/
+        try{
+            Map map = new HashMap();
+            map.put("id", "4");
+            map.put("serialNum", 1);
+            map.put("teacherName","Marvin Pande");
+            map.put("gender", "GenderTypeCode-MALE");
+            map.put("socialCategory","SocialCategoryTypeCode-GENERAL");
+            map.put("highestAcademicQualification","AcademicQualificationTypeCode-PHD");
+            map.put("highestTeacherQualification","TeacherQualificationTypeCode-MED");
+            map.put("yearOfJoiningService","2014");
+            CassandraOperation cassandraOperation = ServiceFactory.getInstance();
+            CassandraConnectionManager cassandraConnectionManager =
+                    CassandraConnectionMngrFactory.getObject("standalone");
+            boolean result =
+                    cassandraConnectionManager.createConnection("127.0.0.1", "9042", null, null, "tpcass");
+            Response response = cassandraOperation.insertRecord("tpcass","Teacher",map);
+            System.out.println("Id:"+response.getId()+" result:"+response.getResult());
+            System.out.println("params:"+response.getParams());
+            Response res = cassandraOperation.getRecordById("tpcass","Teacher","1");
+            System.out.println("response:"+res.getResult().toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 }

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 public class TPGraphMain {
 
@@ -26,7 +28,7 @@ public class TPGraphMain {
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     public ResponseEntity<Object> tpAddToGraph(@RequestBody Request request) {
         ObjectMapper mapper = new ObjectMapper();
-        TPUtils.DBTYPE target = TPUtils.DBTYPE.NEO4J;
+        TPUtils.DBTYPE target = TPUtils.DBTYPE.CASSANDRA;
         try {
             JsonNode rootNode = request.getRequestMapNode();
             String rootName = getParent(rootNode);
@@ -43,6 +45,38 @@ public class TPGraphMain {
             CreateRecord cr = new CreateRecord(rootNode, rootName, target, rootVertex);
             cr.insert();
         } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Can't close autocloseable " + e);
+        }
+
+        return new ResponseEntity(HttpStatus.CREATED);
+    }
+
+    @RequestMapping(value = "/addcassandra", method = RequestMethod.POST)
+    public ResponseEntity<Object> addToCassandra(@RequestBody Request request) {
+        ObjectMapper mapper = new ObjectMapper();
+        TPUtils.DBTYPE target = TPUtils.DBTYPE.CASSANDRA;
+        try {
+            CassandraImpl cassandra = new CassandraImpl();
+            cassandra.addToCassandra(request.getRequestMap());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Can't close autocloseable " + e);
+        }
+
+        return new ResponseEntity(HttpStatus.CREATED);
+    }
+
+    @RequestMapping(value = "/readcassandra", method = RequestMethod.POST)
+    public ResponseEntity<Object> readFromCassandra(@RequestBody Request request) {
+        ObjectMapper mapper = new ObjectMapper();
+        TPUtils.DBTYPE target = TPUtils.DBTYPE.CASSANDRA;
+        try {
+            CassandraImpl cassandra = new CassandraImpl();
+            Map<String, Object> idMap = request.getRequestMap();
+            cassandra.readFromCassandra(idMap.get("id").toString());
+        } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("Can't close autocloseable " + e);
         }
 
