@@ -35,8 +35,10 @@ public class CassandraImpl {
         Response response = cassandraOperation.insertRecord("tpcass","Teacher",mapElements);
     }
 
-    public void readFromCassandra(String id) {
-
-        cassandraOperation.getRecordById("tpcass","Teacher",id);
+    public Map<String, Object> readFromCassandra(Map<String, Object> mapObject) {
+        String elementType = (String) mapObject.keySet().iterator().next();
+        Map<String, Object> mapElement = (Map<String, Object>) mapObject.get(elementType);
+        Response response = cassandraOperation.getRecordById("tpcass",elementType, (String) mapElement.get("teacherroleid"));
+        return response.getResult();
     }
 }

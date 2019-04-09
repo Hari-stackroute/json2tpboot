@@ -69,17 +69,17 @@ public class TPGraphMain {
 
     @RequestMapping(value = "/readcassandra", method = RequestMethod.POST)
     public ResponseEntity<Object> readFromCassandra(@RequestBody Request request) {
-        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> responseMap = null;
         TPUtils.DBTYPE target = TPUtils.DBTYPE.CASSANDRA;
         try {
             CassandraImpl cassandra = new CassandraImpl();
             Map<String, Object> idMap = request.getRequestMap();
-            cassandra.readFromCassandra(idMap.get("id").toString());
+            responseMap = cassandra.readFromCassandra(idMap);
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Can't close autocloseable " + e);
         }
 
-        return new ResponseEntity(HttpStatus.CREATED);
+        return new ResponseEntity(responseMap, HttpStatus.CREATED);
     }
 }
